@@ -86,23 +86,30 @@ database_url = os.environ.get('DATABASE_URL')
 
 if database_url:
     # 生产环境：使用 PostgreSQL (Supabase)
+    # 解析 DATABASE_URL
+    import dj_database_url
+
     DATABASES = {
         'default': dj_database_url.config(
             default=database_url,
-            conn_max_age=600,
-            conn_health_checks=True,
+            conn_max_age=0,  # Serverless 不建议使用持久连接
         )
     }
 
-    # Supabase PostgreSQL 的 SSL 配置
-    # 使用 prefer 模式，允许不验证证书
+    # Supabase PostgreSQL SSL 配置
+    # Vercel Serverless 需要禁用持久连接
+    DATABASES['default']['CONN_MAX_AGE'] = 0
+    DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
+
+    # 添加 SSL 和连接选项
     if 'OPTIONS' not in DATABASES['default']:
         DATABASES['default']['OPTIONS'] = {}
 
-    DATABASES['default']['OPTIONS'].update({
-        'connect_timeout': 10,
-        'options': '-c statement_timeout=30000',
-    })
+    # 如果 URL 中没有 sslmode 参数，添加 SSL 选项
+    if 'sslmode' not in database_url.lower():
+        DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+
+    DATABASES['default']['OPTIONS']['connect_timeout'] = 10
 else:
     # 开发环境：使用本地 SQLite
     DATABASES = {
