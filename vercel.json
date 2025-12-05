@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "django_shop/core/wsgi.py",
+      "src": "wsgi.py",
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "15mb",
@@ -17,7 +17,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "django_shop/core/wsgi.py"
+      "dest": "wsgi.py"
     }
   ]
 }
