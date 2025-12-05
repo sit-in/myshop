@@ -18,6 +18,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 try:
     from django.core.wsgi import get_wsgi_application
     application = get_wsgi_application()
+
+    # Vercel requires the variable to be named 'app' or 'handler'
+    app = application
+
 except Exception as e:
     # Log error for debugging in Vercel logs
     print(f"ERROR: Failed to initialize WSGI application: {e}")
