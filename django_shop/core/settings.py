@@ -109,7 +109,12 @@ if database_url:
     if 'sslmode' not in database_url.lower():
         DATABASES['default']['OPTIONS']['sslmode'] = 'require'
 
+    # 添加连接超时和 keepalive 设置（Serverless 环境必需）
     DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+    DATABASES['default']['OPTIONS']['keepalives'] = 1
+    DATABASES['default']['OPTIONS']['keepalives_idle'] = 30
+    DATABASES['default']['OPTIONS']['keepalives_interval'] = 10
+    DATABASES['default']['OPTIONS']['keepalives_count'] = 5
 else:
     # 开发环境：使用本地 SQLite
     DATABASES = {
