@@ -81,9 +81,22 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Vercel 不支持 SQLite（文件系统只读），必须使用 PostgreSQL
 DATABASES = {
-    'default': dj_database_url.config(default='sqlite:///db.sqlite3')
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600
+    )
 }
+
+# 如果没有设置 DATABASE_URL，使用本地 SQLite（仅用于开发）
+if not os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -131,13 +144,19 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 微信支付配置
-WECHAT_PAY_APP_ID = os.environ.get('WECHAT_PAY_APP_ID', '')
-WECHAT_PAY_MCH_ID = os.environ.get('WECHAT_PAY_MCH_ID', '')
-WECHAT_PAY_API_KEY = os.environ.get('WECHAT_PAY_API_KEY', '')
-WECHAT_PAY_MCH_CERT = os.environ.get('WECHAT_PAY_MCH_CERT', '')  # 证书路径
-WECHAT_PAY_MCH_KEY = os.environ.get('WECHAT_PAY_MCH_KEY', '')   # 证书密钥路径
+# 微信公众号配置
+WECHAT_APP_ID = os.environ.get('WECHAT_APP_ID', '')
+WECHAT_APP_SECRET = os.environ.get('WECHAT_APP_SECRET', '')
+
+# 微信支付配置 (V3 API)
+WECHAT_MCH_ID = os.environ.get('WECHAT_MCH_ID', '')
+WECHAT_API_V3_KEY = os.environ.get('WECHAT_API_V3_KEY', '')
+WECHAT_SERIAL_NO = os.environ.get('WECHAT_SERIAL_NO', '')
+WECHAT_PRIVATE_KEY = os.environ.get('WECHAT_PRIVATE_KEY', '')
 WECHAT_PAY_NOTIFY_URL = os.environ.get('WECHAT_PAY_NOTIFY_URL', 'https://yourdomain.com/payment/notify/')
+
+# 网站地址
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 
 # 邮件配置（使用 SMTP）
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from io import BytesIO
 
 import qrcode
@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -44,7 +45,7 @@ def buy_product(request, slug):
         status='pending',
         payment_status='unpaid',
         out_trade_no=WeChatPayClient.generate_out_trade_no(),
-        expires_at=datetime.now() + timedelta(minutes=settings.ORDER_EXPIRE_MINUTES),
+        expires_at=timezone.now() + timedelta(minutes=settings.ORDER_EXPIRE_MINUTES),
     )
 
     # 检查是否启用测试模式
@@ -66,7 +67,7 @@ def buy_product(request, slug):
                 order.payment_status = 'paid'
                 order.status = 'completed'
                 order.transaction_id = f'TEST_{order.out_trade_no}'
-                order.paid_at = datetime.now()
+                order.paid_at = timezone.now()
                 order.qr_code_url = 'test://paid'
                 order.save()
 
@@ -77,6 +78,11 @@ def buy_product(request, slug):
 
                 # 直接跳转到订单详情页
                 return redirect('shop:order_detail', order_id=order.id)
+            else:
+                # 测试模式下也没有卡密，返回错误
+                return render(request, 'shop/error.html', {
+                    'message': '抱歉，该商品暂时缺货。'
+                }, status=400)
 
     # 生产模式：生成支付二维码
     try:
@@ -101,7 +107,7 @@ def payment_page(request, order_id):
     if order.payment_status == 'paid':
         return redirect('shop:order_detail', order_id=order.id)
 
-    if order.expires_at and order.expires_at < datetime.now():
+    if order.expires_at and order.expires_at < timezone.now():
         order.payment_status = 'expired'
         order.save()
         return render(request, 'shop/error.html', {
@@ -132,21 +138,38 @@ def generate_qr_code(request, order_id):
 @csrf_exempt
 @require_POST
 def wechat_payment_notify(request):
-    """接收微信支付回调通知"""
+    """接收微信支付回调通知 (V3 API)"""
     try:
-        # 解析 XML 数据
-        data = request.body
+        # 获取请求头
+        headers = {
+            'Wechatpay-Signature': request.META.get('HTTP_WECHATPAY_SIGNATURE', ''),
+            'Wechatpay-Timestamp': request.META.get('HTTP_WECHATPAY_TIMESTAMP', ''),
+            'Wechatpay-Nonce': request.META.get('HTTP_WECHATPAY_NONCE', ''),
+            'Wechatpay-Serial': request.META.get('HTTP_WECHATPAY_SERIAL', ''),
+        }
+
+        # 获取请求体
+        body = request.body
+
+        # 验证签名并解密
         wechat_client = WeChatPayClient()
+        result = wechat_client.verify_notify(headers, body)
 
-        # 验证签名
-        result = wechat_client.verify_notify(data)
+        if not result:
+            return JsonResponse({'code': 'FAIL', 'message': '签名验证失败'})
 
-        if result.get('return_code') != 'SUCCESS' or result.get('result_code') != 'SUCCESS':
-            return HttpResponse('FAIL', content_type='text/plain')
+        # 检查支付状态
+        if result.get('event_type') != 'TRANSACTION.SUCCESS':
+            return JsonResponse({'code': 'SUCCESS', 'message': '非成功通知'})
 
-        # 获取订单号
-        out_trade_no = result.get('out_trade_no')
-        transaction_id = result.get('transaction_id')
+        # 获取订单信息
+        resource = result.get('resource', {})
+        out_trade_no = resource.get('out_trade_no')
+        transaction_id = resource.get('transaction_id')
+        trade_state = resource.get('trade_state')
+
+        if trade_state != 'SUCCESS':
+            return JsonResponse({'code': 'SUCCESS', 'message': '支付未成功'})
 
         # 查询订单
         with transaction.atomic():
@@ -154,7 +177,7 @@ def wechat_payment_notify(request):
 
             # 防止重复处理
             if order.payment_status == 'paid':
-                return HttpResponse('SUCCESS', content_type='text/plain')
+                return JsonResponse({'code': 'SUCCESS', 'message': '订单已处理'})
 
             # 分配卡密
             card = (
@@ -168,13 +191,13 @@ def wechat_payment_notify(request):
                 # 库存不足，需要退款（这里简化处理）
                 order.status = 'cancelled'
                 order.save()
-                return HttpResponse('SUCCESS', content_type='text/plain')
+                return JsonResponse({'code': 'SUCCESS', 'message': '库存不足'})
 
             # 更新订单状态
             order.payment_status = 'paid'
             order.status = 'completed'
             order.transaction_id = transaction_id
-            order.paid_at = datetime.now()
+            order.paid_at = timezone.now()
             order.save()
 
             # 更新卡密状态
@@ -189,11 +212,13 @@ def wechat_payment_notify(request):
             # 记录日志但不影响支付流程
             print(f"邮件发送失败: {e}")
 
-        return HttpResponse('SUCCESS', content_type='text/plain')
+        return JsonResponse({'code': 'SUCCESS', 'message': '成功'})
 
     except Exception as e:
         print(f"支付回调处理失败: {e}")
-        return HttpResponse('FAIL', content_type='text/plain')
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'code': 'FAIL', 'message': str(e)})
 
 
 def order_detail(request, order_id):

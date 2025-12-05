@@ -15,9 +15,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import include, path
+
+
+def wechat_verify(request):
+    """微信公众号域名验证文件"""
+    return HttpResponse('ppTG1CEXB5Ni8Hc5', content_type='text/plain')
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('MP_verify_ppTG1CEXB5Ni8Hc5.txt', wechat_verify, name='wechat_verify'),
     path('', include('shop.urls')),
 ]
