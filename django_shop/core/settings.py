@@ -93,6 +93,16 @@ if database_url:
             conn_health_checks=True,
         )
     }
+
+    # Supabase PostgreSQL 的 SSL 配置
+    # 使用 prefer 模式，允许不验证证书
+    if 'OPTIONS' not in DATABASES['default']:
+        DATABASES['default']['OPTIONS'] = {}
+
+    DATABASES['default']['OPTIONS'].update({
+        'connect_timeout': 10,
+        'options': '-c statement_timeout=30000',
+    })
 else:
     # 开发环境：使用本地 SQLite
     DATABASES = {

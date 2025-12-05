@@ -17,15 +17,45 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 # Import the WSGI application
 try:
     from django.core.wsgi import get_wsgi_application
+
+    # Log initialization info
+    database_url = os.environ.get('DATABASE_URL', '')
+    print(f"[INIT] Initializing Django WSGI application...")
+    print(f"[INIT] DATABASE_URL: {'SET (length: ' + str(len(database_url)) + ')' if database_url else 'NOT SET'}")
+    print(f"[INIT] DEBUG: {os.environ.get('DEBUG', 'not set')}")
+
+    # Log database URL details (safely, without exposing password)
+    if database_url:
+        # Parse URL to show structure
+        import re
+        url_pattern = r'postgresql://([^:]+):([^@]+)@([^/]+)/(.+)'
+        match = re.match(url_pattern, database_url)
+        if match:
+            user, password, host, db = match.groups()
+            print(f"[INIT] DB User: {user}")
+            print(f"[INIT] DB Host: {host}")
+            print(f"[INIT] DB Name: {db}")
+            print(f"[INIT] Password length: {len(password)}")
+        else:
+            print(f"[INIT] WARNING: DATABASE_URL format may be incorrect")
+
     application = get_wsgi_application()
 
     # Vercel requires the variable to be named 'app' or 'handler'
     app = application
 
+    print(f"[INIT] ✅ WSGI application initialized successfully")
+
 except Exception as e:
-    # Log error for debugging in Vercel logs
-    print(f"ERROR: Failed to initialize WSGI application: {e}")
-    print(f"Python path: {sys.path}")
-    print(f"Current directory: {os.getcwd()}")
-    print(f"Environment variables: DATABASE_URL={'SET' if os.environ.get('DATABASE_URL') else 'NOT SET'}")
+    # Log detailed error for debugging in Vercel logs
+    print(f"[ERROR] ❌ Failed to initialize WSGI application")
+    print(f"[ERROR] Exception type: {type(e).__name__}")
+    print(f"[ERROR] Exception message: {str(e)}")
+    print(f"[ERROR] Python path: {sys.path}")
+    print(f"[ERROR] Current directory: {os.getcwd()}")
+
+    import traceback
+    print(f"[ERROR] Full traceback:")
+    traceback.print_exc()
+
     raise
