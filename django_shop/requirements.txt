@@ -7,3 +7,6 @@ psycopg2-binary==2.9.11
 python-dotenv==1.2.1
 sqlparse==0.5.4
 whitenoise==6.11.0
+wechatpy==1.8.18
+qrcode==7.4.2
+pillow==10.1.0

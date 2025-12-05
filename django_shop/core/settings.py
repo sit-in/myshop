@@ -130,3 +130,26 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 微信支付配置
+WECHAT_PAY_APP_ID = os.environ.get('WECHAT_PAY_APP_ID', '')
+WECHAT_PAY_MCH_ID = os.environ.get('WECHAT_PAY_MCH_ID', '')
+WECHAT_PAY_API_KEY = os.environ.get('WECHAT_PAY_API_KEY', '')
+WECHAT_PAY_MCH_CERT = os.environ.get('WECHAT_PAY_MCH_CERT', '')  # 证书路径
+WECHAT_PAY_MCH_KEY = os.environ.get('WECHAT_PAY_MCH_KEY', '')   # 证书密钥路径
+WECHAT_PAY_NOTIFY_URL = os.environ.get('WECHAT_PAY_NOTIFY_URL', 'https://yourdomain.com/payment/notify/')
+
+# 邮件配置（使用 SMTP）
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@example.com')
+
+# 订单超时时间（分钟）
+ORDER_EXPIRE_MINUTES = 30
+
+# 支付测试模式（开启后跳过微信支付，直接模拟支付成功）
+PAYMENT_TEST_MODE = os.environ.get('PAYMENT_TEST_MODE', 'True').lower() in ('true', '1', 'yes')

@@ -32,10 +32,28 @@ class Order(models.Model):
         ('cancelled', '已取消'),
     ]
 
+    PAYMENT_STATUS_CHOICES = [
+        ('unpaid', '未支付'),
+        ('paid', '已支付'),
+        ('refunded', '已退款'),
+        ('expired', '已过期'),
+    ]
+
+    # 商品关联
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='orders', verbose_name='商品', null=True, blank=True)
+
     email = models.EmailField('买家邮箱')
     total_amount = models.DecimalField('订单金额', max_digits=10, decimal_places=2, default=Decimal('0.00'))
     status = models.CharField('订单状态', max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField('下单时间', auto_now_add=True)
+
+    # 支付相关字段
+    payment_status = models.CharField('支付状态', max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
+    out_trade_no = models.CharField('商户订单号', max_length=64, unique=True, db_index=True, blank=True)
+    transaction_id = models.CharField('微信支付交易号', max_length=64, blank=True, null=True)
+    qr_code_url = models.URLField('支付二维码链接', blank=True, null=True, max_length=500)
+    paid_at = models.DateTimeField('支付时间', blank=True, null=True)
+    expires_at = models.DateTimeField('订单过期时间', blank=True, null=True)
 
     class Meta:
         verbose_name = '订单'

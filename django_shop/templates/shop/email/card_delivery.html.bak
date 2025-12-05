@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #a855f7, #ec4899); color: white; padding: 20px; text-align: center; }
+        .content { background: #f9f9f9; padding: 20px; }
+        .card-box { background: white; border: 2px solid #a855f7; padding: 15px; margin: 20px 0; font-family: monospace; font-size: 16px; word-break: break-all; }
+        .footer { text-align: center; color: #666; font-size: 12px; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✦ 数字商店</h1>
+            <p>您的订单已完成</p>
+        </div>
+        <div class="content">
+            <p>尊敬的用户，您好！</p>
+            <p>您的订单 <strong>#{{ order.id }}</strong> 已支付成功。以下是您购买的商品信息：</p>
+
+            <h3>商品信息</h3>
+            <p><strong>商品名称：</strong>{{ card.product.name }}</p>
+            <p><strong>订单金额：</strong>¥{{ order.total_amount }}</p>
+
+            <h3>卡密内容</h3>
+            <div class="card-box">
+                {{ card.content }}
+            </div>
+
+            <p><small>* 请妥善保管您的卡密信息</small></p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 数字商店 · 感谢您的购买</p>
+        </div>
+    </div>
+</body>
+</html>

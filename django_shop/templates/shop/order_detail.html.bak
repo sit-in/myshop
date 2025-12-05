@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}订单详情 - 数字商店{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-gray-800/80 rounded-xl p-8 border border-gray-700/50">
+        {% if order.payment_status == 'paid' %}
+            <!-- 支付成功 -->
+            <div class="text-center mb-6">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-green-400 mb-2">支付成功！</h1>
+                <p class="text-gray-400">订单 #{{ order.id }} 已完成</p>
+            </div>
+
+            <!-- 卡密信息 -->
+            <div class="bg-gray-700/50 rounded-lg p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-300 mb-3">您的卡密</h2>
+                <div class="bg-gray-900 rounded-lg p-4 border border-purple-500">
+                    <code class="text-purple-400 text-lg font-mono break-all">{{ card.content }}</code>
+                </div>
+                <p class="text-gray-500 text-sm mt-3">
+                    * 卡密已发送至您的邮箱：{{ order.email }}
+                </p>
+            </div>
+        {% else %}
+            <!-- 未支付 -->
+            <div class="text-center">
+                <h1 class="text-2xl font-bold text-yellow-400 mb-4">订单待支付</h1>
+                <a href="{% url 'shop:payment_page' order.id %}"
+                   class="inline-block bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-lg font-semibold">
+                    继续支付
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- 订单详情 -->
+        <div class="bg-gray-700/50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-300 mb-4">订单信息</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">订单号：</span>
+                    <span class="text-white">{{ order.id }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">下单时间：</span>
+                    <span class="text-white">{{ order.created_at|date:"Y-m-d H:i:s" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">支付金额：</span>
+                    <span class="text-green-400 font-semibold">¥{{ order.total_amount }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">支付状态：</span>
+                    <span class="{% if order.payment_status == 'paid' %}text-green-400{% else %}text-yellow-400{% endif %}">
+                        {{ order.get_payment_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 返回首页按钮 -->
+        <div class="mt-6 text-center">
+            <a href="{% url 'shop:product_list' %}"
+               class="inline-block text-gray-400 hover:text-white transition-colors">
+                ← 返回首页
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -22,7 +22,8 @@ class CardAdmin(admin.ModelAdmin):
     list_display = ('id', 'product', 'status', 'short_content', 'order', 'created_at')
     list_filter = ('status', 'product')
     search_fields = ('content',)
-    raw_id_fields = ('product', 'order')
+    # raw_id_fields = ('product', 'order')  # 移除此行，改用普通下拉选择
+    raw_id_fields = ('order',)  # 只对 order 使用搜索框
     list_editable = ('status',)
     ordering = ['-created_at']
 
