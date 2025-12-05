@@ -17,7 +17,7 @@ ENV/
 *.log
 local_settings.py
 db.sqlite3
-staticfiles/
+# staticfiles/ - 已注释，Vercel 部署需要这些文件
 media/
 wechatpay_certs/
 
