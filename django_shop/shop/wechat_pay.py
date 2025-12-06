@@ -14,7 +14,8 @@ class WeChatPayClient:
     def __init__(self):
         """初始化微信支付客户端"""
         # 创建证书缓存目录
-        cert_dir = os.path.join(settings.BASE_DIR, 'wechatpay_certs')
+        # Vercel Serverless 环境只有 /tmp 可写
+        cert_dir = '/tmp/wechatpay_certs' if os.environ.get('VERCEL') else os.path.join(settings.BASE_DIR, 'wechatpay_certs')
         os.makedirs(cert_dir, exist_ok=True)
 
         self.wxpay = WeChatPay(
