@@ -18,16 +18,35 @@ class WeChatPayClient:
         cert_dir = '/tmp/wechatpay_certs' if os.environ.get('VERCEL') else os.path.join(settings.BASE_DIR, 'wechatpay_certs')
         os.makedirs(cert_dir, exist_ok=True)
 
-        self.wxpay = WeChatPay(
-            wechatpay_type=WeChatPayType.NATIVE,
-            mchid=settings.WECHAT_MCH_ID,
-            private_key=settings.WECHAT_PRIVATE_KEY,
-            cert_serial_no=settings.WECHAT_SERIAL_NO,
-            apiv3_key=settings.WECHAT_API_V3_KEY,
-            appid=settings.WECHAT_APP_ID,
-            notify_url=settings.WECHAT_PAY_NOTIFY_URL,
-            cert_dir=cert_dir,  # 证书缓存目录
-        )
+        # 打印配置信息（脱敏）用于调试
+        print("=" * 60)
+        print("微信支付初始化配置检查:")
+        print(f"  商户号 (mchid): {settings.WECHAT_MCH_ID}")
+        print(f"  AppID: {settings.WECHAT_APP_ID}")
+        print(f"  证书序列号: {settings.WECHAT_SERIAL_NO[:8]}...{settings.WECHAT_SERIAL_NO[-8:] if len(settings.WECHAT_SERIAL_NO) > 16 else ''}")
+        print(f"  APIv3密钥长度: {len(settings.WECHAT_API_V3_KEY)} 字符")
+        print(f"  私钥格式: {'包含 BEGIN PRIVATE KEY' if 'BEGIN PRIVATE KEY' in settings.WECHAT_PRIVATE_KEY else '❌ 格式错误'}")
+        print(f"  证书目录: {cert_dir}")
+        print(f"  回调 URL: {settings.WECHAT_PAY_NOTIFY_URL}")
+        print("=" * 60)
+
+        try:
+            self.wxpay = WeChatPay(
+                wechatpay_type=WeChatPayType.NATIVE,
+                mchid=settings.WECHAT_MCH_ID,
+                private_key=settings.WECHAT_PRIVATE_KEY,
+                cert_serial_no=settings.WECHAT_SERIAL_NO,
+                apiv3_key=settings.WECHAT_API_V3_KEY,
+                appid=settings.WECHAT_APP_ID,
+                notify_url=settings.WECHAT_PAY_NOTIFY_URL,
+                cert_dir=cert_dir,  # 证书缓存目录
+            )
+            print("✅ 微信支付客户端初始化成功")
+        except Exception as e:
+            print(f"❌ 微信支付初始化失败: {e}")
+            import traceback
+            traceback.print_exc()
+            raise Exception(f"微信支付配置错误: {str(e)}")
 
     def create_native_order(self, order):
         """
