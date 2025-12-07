@@ -83,18 +83,35 @@ class WeChatPayClient:
         description = f'{order.product.name}'
 
         # 调用 Native 下单 API
-        code, message = self.wxpay.pay(
-            description=description,
-            out_trade_no=out_trade_no,
-            amount={'total': total_amount},
-            time_expire=time_expire,
-        )
+        try:
+            code, message = self.wxpay.pay(
+                description=description,
+                out_trade_no=out_trade_no,
+                amount={'total': total_amount},
+                time_expire=time_expire,
+            )
 
-        if code == 200:
-            # 返回二维码链接
-            return message.get('code_url')
-        else:
-            raise Exception(f'微信支付下单失败: {message}')
+            print(f"微信支付 API 响应: code={code}, message type={type(message)}")
+
+            if code == 200:
+                # 检查 message 是否是字典
+                if isinstance(message, dict):
+                    code_url = message.get('code_url')
+                    if code_url:
+                        print(f"✅ 支付二维码生成成功: {code_url[:50]}...")
+                        return code_url
+                    else:
+                        raise Exception(f'微信支付返回成功但缺少 code_url: {message}')
+                else:
+                    # message 是字符串或其他类型
+                    raise Exception(f'微信支付返回格式错误: {type(message).__name__} - {message}')
+            else:
+                # 支付失败
+                error_msg = message if isinstance(message, str) else str(message)
+                raise Exception(f'微信支付下单失败 (code={code}): {error_msg}')
+        except Exception as e:
+            print(f"❌ 创建支付订单失败: {e}")
+            raise
 
     def query_order(self, out_trade_no):
         """
