@@ -186,6 +186,8 @@ WECHAT_MCH_ID = os.environ.get('WECHAT_MCH_ID', '')
 WECHAT_API_V3_KEY = os.environ.get('WECHAT_API_V3_KEY', '')
 WECHAT_SERIAL_NO = os.environ.get('WECHAT_SERIAL_NO', '')
 WECHAT_PRIVATE_KEY = os.environ.get('WECHAT_PRIVATE_KEY', '')
+WECHAT_PLATFORM_CERT = os.environ.get('WECHAT_PLATFORM_CERT', '')  # 微信支付平台证书/公钥
+WECHAT_PLATFORM_CERT_SERIAL_NO = os.environ.get('WECHAT_PLATFORM_CERT_SERIAL_NO', '')  # 平台证书序列号
 WECHAT_PAY_NOTIFY_URL = os.environ.get('WECHAT_PAY_NOTIFY_URL', 'https://yourdomain.com/payment/notify/')
 
 # 网站地址

@@ -25,23 +25,42 @@ class WeChatPayClient:
         print(f"  AppID: {settings.WECHAT_APP_ID}")
         print(f"  证书序列号: {settings.WECHAT_SERIAL_NO[:8]}...{settings.WECHAT_SERIAL_NO[-8:] if len(settings.WECHAT_SERIAL_NO) > 16 else ''}")
         print(f"  APIv3密钥长度: {len(settings.WECHAT_API_V3_KEY)} 字符")
-        print(f"  私钥格式: {'包含 BEGIN PRIVATE KEY' if 'BEGIN PRIVATE KEY' in settings.WECHAT_PRIVATE_KEY else '❌ 格式错误'}")
+        print(f"  私钥格式: {'✅ 包含 BEGIN PRIVATE KEY' if 'BEGIN PRIVATE KEY' in settings.WECHAT_PRIVATE_KEY else '❌ 格式错误'}")
+        print(f"  平台证书: {'✅ 已配置' if settings.WECHAT_PLATFORM_CERT else '⚠️  未配置'}")
+        if settings.WECHAT_PLATFORM_CERT:
+            print(f"  平台证书序列号: {settings.WECHAT_PLATFORM_CERT_SERIAL_NO[:8]}...{settings.WECHAT_PLATFORM_CERT_SERIAL_NO[-8:] if len(settings.WECHAT_PLATFORM_CERT_SERIAL_NO) > 16 else ''}")
         print(f"  证书目录: {cert_dir}")
         print(f"  回调 URL: {settings.WECHAT_PAY_NOTIFY_URL}")
         print("=" * 60)
 
         try:
-            self.wxpay = WeChatPay(
-                wechatpay_type=WeChatPayType.NATIVE,
-                mchid=settings.WECHAT_MCH_ID,
-                private_key=settings.WECHAT_PRIVATE_KEY,
-                cert_serial_no=settings.WECHAT_SERIAL_NO,
-                apiv3_key=settings.WECHAT_API_V3_KEY,
-                appid=settings.WECHAT_APP_ID,
-                notify_url=settings.WECHAT_PAY_NOTIFY_URL,
-                cert_dir=cert_dir,  # 证书缓存目录
-            )
+            print("\n正在初始化微信支付客户端...")
+
+            # 准备基础初始化参数
+            init_params = {
+                'wechatpay_type': WeChatPayType.NATIVE,
+                'mchid': settings.WECHAT_MCH_ID,
+                'private_key': settings.WECHAT_PRIVATE_KEY,
+                'cert_serial_no': settings.WECHAT_SERIAL_NO,
+                'apiv3_key': settings.WECHAT_API_V3_KEY,
+                'appid': settings.WECHAT_APP_ID,
+                'notify_url': settings.WECHAT_PAY_NOTIFY_URL,
+            }
+
+            # 如果配置了平台公钥，使用公钥模式（新商户号）
+            if settings.WECHAT_PLATFORM_CERT and settings.WECHAT_PLATFORM_CERT_SERIAL_NO:
+                print("  → 使用公钥模式（新商户号）")
+                init_params['public_key'] = settings.WECHAT_PLATFORM_CERT
+                init_params['public_key_id'] = settings.WECHAT_PLATFORM_CERT_SERIAL_NO
+                print(f"  → 公钥ID: {settings.WECHAT_PLATFORM_CERT_SERIAL_NO[:8]}...{settings.WECHAT_PLATFORM_CERT_SERIAL_NO[-8:]}")
+            else:
+                # 使用证书模式（需要自动下载或手动配置平台证书）
+                print("  → 使用证书模式（将自动下载平台证书）")
+                init_params['cert_dir'] = cert_dir
+
+            self.wxpay = WeChatPay(**init_params)
             print("✅ 微信支付客户端初始化成功")
+
         except Exception as e:
             print(f"❌ 微信支付初始化失败: {e}")
             import traceback
