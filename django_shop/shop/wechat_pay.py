@@ -94,17 +94,28 @@ class WeChatPayClient:
             print(f"微信支付 API 响应: code={code}, message type={type(message)}")
 
             if code == 200:
-                # 检查 message 是否是字典
-                if isinstance(message, dict):
-                    code_url = message.get('code_url')
-                    if code_url:
-                        print(f"✅ 支付二维码生成成功: {code_url[:50]}...")
-                        return code_url
-                    else:
-                        raise Exception(f'微信支付返回成功但缺少 code_url: {message}')
+                # 检查 message 类型并解析
+                if isinstance(message, str):
+                    # 公钥模式返回 JSON 字符串，需要解析
+                    try:
+                        import json
+                        message_dict = json.loads(message)
+                        print(f"✅ JSON 解析成功: {message_dict}")
+                    except json.JSONDecodeError as je:
+                        raise Exception(f'JSON 解析失败: {message}')
+                elif isinstance(message, dict):
+                    # 证书模式直接返回字典
+                    message_dict = message
                 else:
-                    # message 是字符串或其他类型
-                    raise Exception(f'微信支付返回格式错误: {type(message).__name__} - {message}')
+                    raise Exception(f'未知的响应类型: {type(message).__name__}')
+
+                # 提取 code_url
+                code_url = message_dict.get('code_url')
+                if code_url:
+                    print(f"✅ 支付二维码生成成功: {code_url}")
+                    return code_url
+                else:
+                    raise Exception(f'微信支付返回成功但缺少 code_url: {message_dict}')
             else:
                 # 支付失败
                 error_msg = message if isinstance(message, str) else str(message)
