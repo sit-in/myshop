@@ -128,12 +128,33 @@ class WeChatPayClient:
         """
         查询订单支付状态
         """
-        code, message = self.wxpay.query(out_trade_no=out_trade_no)
+        try:
+            code, message = self.wxpay.query(out_trade_no=out_trade_no)
 
-        if code == 200:
-            return message
-        else:
-            raise Exception(f'查询订单失败: {message}')
+            print(f"查询订单 API 响应: code={code}, message type={type(message)}")
+
+            if code == 200:
+                # 检查 message 类型并解析（与创建订单逻辑一致）
+                if isinstance(message, str):
+                    # 公钥模式返回 JSON 字符串
+                    try:
+                        import json
+                        message_dict = json.loads(message)
+                        print(f"✅ 查询结果解析成功")
+                        return message_dict
+                    except json.JSONDecodeError:
+                        raise Exception(f'JSON 解析失败: {message}')
+                elif isinstance(message, dict):
+                    # 证书模式直接返回字典
+                    return message
+                else:
+                    raise Exception(f'未知的响应类型: {type(message).__name__}')
+            else:
+                error_msg = message if isinstance(message, str) else str(message)
+                raise Exception(f'查询订单失败 (code={code}): {error_msg}')
+        except Exception as e:
+            print(f"❌ 查询订单失败: {e}")
+            raise
 
     def verify_notify(self, headers, body):
         """

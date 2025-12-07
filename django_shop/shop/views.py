@@ -236,6 +236,63 @@ def check_payment_status(request, order_id):
     """AJAX 检查支付状态"""
     order = get_object_or_404(Order, id=order_id)
 
+    # 如果订单还未支付，主动查询微信支付订单状态
+    if order.payment_status == 'unpaid':
+        try:
+            wechat_client = WeChatPayClient()
+            result = wechat_client.query_order(order.out_trade_no)
+
+            print(f"查询订单状态: {result}")
+
+            # 解析查询结果
+            if isinstance(result, str):
+                import json
+                result = json.loads(result)
+
+            trade_state = result.get('trade_state')
+
+            # 如果支付成功，更新订单状态
+            if trade_state == 'SUCCESS':
+                with transaction.atomic():
+                    # 重新获取订单（加锁）
+                    order = Order.objects.select_for_update().get(id=order_id)
+
+                    # 防止重复处理
+                    if order.payment_status != 'paid':
+                        # 分配卡密
+                        card = (
+                            Card.objects
+                            .select_for_update(skip_locked=True)
+                            .filter(product=order.product, status='unsold')
+                            .first()
+                        )
+
+                        if card:
+                            # 更新订单
+                            order.payment_status = 'paid'
+                            order.status = 'completed'
+                            order.transaction_id = result.get('transaction_id', '')
+                            order.paid_at = timezone.now()
+                            order.save()
+
+                            # 更新卡密
+                            card.status = 'sold'
+                            card.order = order
+                            card.save()
+
+                            print(f"✅ 订单 {order.id} 支付成功，已分配卡密")
+
+                            # 发送邮件
+                            try:
+                                send_card_email(order, card)
+                            except Exception as e:
+                                print(f"邮件发送失败: {e}")
+
+        except Exception as e:
+            print(f"查询订单状态失败: {e}")
+            import traceback
+            traceback.print_exc()
+
     return JsonResponse({
         'payment_status': order.payment_status,
         'is_paid': order.payment_status == 'paid',
