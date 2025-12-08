@@ -8,17 +8,11 @@ echo "========================================="
 # Navigate to Django project directory
 cd django_shop
 
-# Run database migrations
-echo "Running database migrations..."
-python3 manage.py migrate --noinput
-
-# Check if migrations succeeded
-if [ $? -eq 0 ]; then
-    echo "✅ Database migrations applied successfully!"
-else
-    echo "❌ Failed to apply migrations"
-    exit 1
-fi
+# Note: Database migrations should be run manually in Supabase SQL Editor
+# Vercel build environment cannot access production database
+echo "⚠️  Note: Please run database migrations manually in Supabase"
+echo "   Visit: https://supabase.com/dashboard → SQL Editor"
+echo "   Execute: ALTER TABLE shop_order ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1;"
 
 # Collect static files
 echo "Collecting static files..."
