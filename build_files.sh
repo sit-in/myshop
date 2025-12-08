@@ -8,6 +8,18 @@ echo "========================================="
 # Navigate to Django project directory
 cd django_shop
 
+# Run database migrations
+echo "Running database migrations..."
+python3 manage.py migrate --noinput
+
+# Check if migrations succeeded
+if [ $? -eq 0 ]; then
+    echo "✅ Database migrations applied successfully!"
+else
+    echo "❌ Failed to apply migrations"
+    exit 1
+fi
+
 # Collect static files
 echo "Collecting static files..."
 python3 manage.py collectstatic --noinput --clear
