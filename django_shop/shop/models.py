@@ -43,6 +43,7 @@ class Order(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='orders', verbose_name='商品', null=True, blank=True)
 
     email = models.EmailField('买家邮箱')
+    quantity = models.PositiveIntegerField('购买数量', default=1)
     total_amount = models.DecimalField('订单金额', max_digits=10, decimal_places=2, default=Decimal('0.00'))
     status = models.CharField('订单状态', max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField('下单时间', auto_now_add=True)

@@ -26,9 +26,14 @@ def buy_product(request, slug):
     """创建订单并跳转支付页面"""
     product = get_object_or_404(Product, slug=slug)
     email = request.POST.get('email')
+    quantity = int(request.POST.get('quantity', 1))
 
     if not email:
         return HttpResponseBadRequest("Email is required")
+
+    # 验证购买数量
+    if quantity < 1:
+        return HttpResponseBadRequest("购买数量至少为 1")
 
     # 检查库存
     stock_count = product.cards.filter(status='unsold').count()
@@ -37,11 +42,17 @@ def buy_product(request, slug):
             'message': '抱歉，该商品已售罄。'
         }, status=400)
 
+    if stock_count < quantity:
+        return render(request, 'shop/error.html', {
+            'message': f'抱歉，库存不足。当前库存仅剩 {stock_count} 件，您想购买 {quantity} 件。'
+        }, status=400)
+
     # 创建订单（待支付状态）
     order = Order.objects.create(
         email=email,
         product=product,  # 关联商品
-        total_amount=product.price,
+        quantity=quantity,
+        total_amount=product.price * quantity,
         status='pending',
         payment_status='unpaid',
         out_trade_no=WeChatPayClient.generate_out_trade_no(),
@@ -54,15 +65,16 @@ def buy_product(request, slug):
     if test_mode:
         # 测试模式：直接模拟支付成功
         with transaction.atomic():
-            # 分配卡密
-            card = (
+            # 批量分配卡密
+            cards = (
                 Card.objects
                 .select_for_update(skip_locked=True)
                 .filter(product=product, status='unsold')
-                .first()
+                [:quantity]
             )
+            cards_list = list(cards)
 
-            if card:
+            if len(cards_list) == quantity:
                 # 更新订单状态
                 order.payment_status = 'paid'
                 order.status = 'completed'
@@ -71,17 +83,24 @@ def buy_product(request, slug):
                 order.qr_code_url = 'test://paid'
                 order.save()
 
-                # 更新卡密状态
-                card.status = 'sold'
-                card.order = order
-                card.save()
+                # 批量更新卡密状态
+                for card in cards_list:
+                    card.status = 'sold'
+                    card.order = order
+                    card.save()
+
+                # 发送邮件
+                try:
+                    send_card_email(order, cards_list)
+                except Exception as e:
+                    print(f"邮件发送失败: {e}")
 
                 # 直接跳转到订单详情页
                 return redirect('shop:order_detail', order_id=order.id)
             else:
-                # 测试模式下也没有卡密，返回错误
+                # 测试模式下也没有足够卡密，返回错误
                 return render(request, 'shop/error.html', {
-                    'message': '抱歉，该商品暂时缺货。'
+                    'message': f'抱歉，库存不足。当前仅剩 {len(cards_list)} 件。'
                 }, status=400)
 
     # 生产模式：生成支付二维码
@@ -179,19 +198,21 @@ def wechat_payment_notify(request):
             if order.payment_status == 'paid':
                 return JsonResponse({'code': 'SUCCESS', 'message': '订单已处理'})
 
-            # 分配卡密
-            card = (
+            # 批量分配卡密
+            quantity = order.quantity
+            cards = (
                 Card.objects
                 .select_for_update(skip_locked=True)
                 .filter(product__id=order.product_id, status='unsold')
-                .first()
+                [:quantity]
             )
+            cards_list = list(cards)
 
-            if not card:
+            if len(cards_list) < quantity:
                 # 库存不足，需要退款（这里简化处理）
                 order.status = 'cancelled'
                 order.save()
-                return JsonResponse({'code': 'SUCCESS', 'message': '库存不足'})
+                return JsonResponse({'code': 'SUCCESS', 'message': f'库存不足，需要 {quantity} 件，仅剩 {len(cards_list)} 件'})
 
             # 更新订单状态
             order.payment_status = 'paid'
@@ -200,14 +221,15 @@ def wechat_payment_notify(request):
             order.paid_at = timezone.now()
             order.save()
 
-            # 更新卡密状态
-            card.status = 'sold'
-            card.order = order
-            card.save()
+            # 批量更新卡密状态
+            for card in cards_list:
+                card.status = 'sold'
+                card.order = order
+                card.save()
 
         # 发送邮件（异步执行更好）
         try:
-            send_card_email(order, card)
+            send_card_email(order, cards_list)
         except Exception as e:
             # 记录日志但不影响支付流程
             print(f"邮件发送失败: {e}")
@@ -224,11 +246,11 @@ def wechat_payment_notify(request):
 def order_detail(request, order_id):
     """订单详情页面"""
     order = get_object_or_404(Order, id=order_id)
-    card = order.cards.first() if order.payment_status == 'paid' else None
+    cards = order.cards.all() if order.payment_status == 'paid' else []
 
     return render(request, 'shop/order_detail.html', {
         'order': order,
-        'card': card,
+        'cards': cards,
     })
 
 
@@ -259,15 +281,17 @@ def check_payment_status(request, order_id):
 
                     # 防止重复处理
                     if order.payment_status != 'paid':
-                        # 分配卡密
-                        card = (
+                        # 批量分配卡密
+                        quantity = order.quantity
+                        cards = (
                             Card.objects
                             .select_for_update(skip_locked=True)
                             .filter(product=order.product, status='unsold')
-                            .first()
+                            [:quantity]
                         )
+                        cards_list = list(cards)
 
-                        if card:
+                        if len(cards_list) == quantity:
                             # 更新订单
                             order.payment_status = 'paid'
                             order.status = 'completed'
@@ -275,16 +299,17 @@ def check_payment_status(request, order_id):
                             order.paid_at = timezone.now()
                             order.save()
 
-                            # 更新卡密
-                            card.status = 'sold'
-                            card.order = order
-                            card.save()
+                            # 批量更新卡密
+                            for card in cards_list:
+                                card.status = 'sold'
+                                card.order = order
+                                card.save()
 
-                            print(f"✅ 订单 {order.id} 支付成功，已分配卡密")
+                            print(f"✅ 订单 {order.id} 支付成功，已分配 {quantity} 个卡密")
 
                             # 发送邮件
                             try:
-                                send_card_email(order, card)
+                                send_card_email(order, cards_list)
                             except Exception as e:
                                 print(f"邮件发送失败: {e}")
 

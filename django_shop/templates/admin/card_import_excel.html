@@ -1,0 +1,125 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 40px auto;">
+    <h1>{{ title }}</h1>
+
+    <div class="module" style="margin-top: 20px;">
+        <form method="post" enctype="multipart/form-data" style="padding: 20px;">
+            {% csrf_token %}
+
+            {% if form.errors %}
+                <div class="errornote">
+                    <p>请修正以下错误：</p>
+                    {{ form.errors }}
+                </div>
+            {% endif %}
+
+            <fieldset class="module aligned">
+                <div class="form-row">
+                    <div>
+                        <label for="{{ form.product.id_for_label }}" class="required">{{ form.product.label }}:</label>
+                        {{ form.product }}
+                        {% if form.product.help_text %}
+                            <p class="help">{{ form.product.help_text }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <label for="{{ form.excel_file.id_for_label }}" class="required">{{ form.excel_file.label }}:</label>
+                        {{ form.excel_file }}
+                        {% if form.excel_file.help_text %}
+                            <p class="help">{{ form.excel_file.help_text }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="submit-row" style="margin-top: 20px;">
+                <input type="submit" value="开始导入" class="default">
+                <a href="../" class="button cancel-link">取消</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="module" style="margin-top: 30px; padding: 20px; background: #f8f8f8;">
+        <h2 style="margin-top: 0;">📋 Excel 文件格式说明</h2>
+        <div style="line-height: 1.8;">
+            <p><strong>1. 文件格式：</strong>仅支持 .xlsx 格式（Excel 2007 及以上版本）</p>
+            <p><strong>2. 数据格式：</strong></p>
+            <ul style="margin-left: 20px;">
+                <li>第一行作为表头（将被跳过）</li>
+                <li>从第二行开始，每行第一列（A列）为一个卡密内容</li>
+                <li>空行会自动跳过</li>
+            </ul>
+            <p><strong>3. 示例：</strong></p>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; margin: 10px 0;">
+                <thead>
+                    <tr style="background: #e0e0e0;">
+                        <th>卡密内容</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ABCD-1234-EFGH-5678</td>
+                    </tr>
+                    <tr>
+                        <td>IJKL-9012-MNOP-3456</td>
+                    </tr>
+                    <tr>
+                        <td>QRST-7890-UVWX-1234</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><strong>4. 注意事项：</strong></p>
+            <ul style="margin-left: 20px;">
+                <li>请确保每个卡密唯一，避免重复导入</li>
+                <li>卡密内容会自动去除前后空格</li>
+                <li>导入过程不可撤销，请谨慎操作</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-row > div {
+    padding: 12px 0;
+}
+.form-row label {
+    display: inline-block;
+    width: 150px;
+    font-weight: bold;
+}
+.form-row input[type="file"],
+.form-row select {
+    padding: 8px;
+    width: 400px;
+}
+.help {
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+}
+.submit-row {
+    padding: 12px 14px;
+    margin: 0 0 20px;
+    background: #f8f8f8;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+.cancel-link {
+    background: #ba2121;
+    color: white !important;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+.cancel-link:hover {
+    background: #a41515;
+}
+</style>
+{% endblock %}

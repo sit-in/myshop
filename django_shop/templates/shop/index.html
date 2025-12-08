@@ -89,6 +89,36 @@
                        class="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
                        {% if product.stock_count == 0 %}disabled{% endif %}>
 
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label for="quantity_{{ product.id }}" class="block text-gray-500 text-xs mb-1">购买数量</label>
+                        <input type="number"
+                               id="quantity_{{ product.id }}"
+                               name="quantity"
+                               min="1"
+                               max="{{ product.stock_count }}"
+                               value="1"
+                               required
+                               class="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+                               {% if product.stock_count == 0 %}disabled{% endif %}
+                               onchange="updatePrice{{ product.id }}(this.value)">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-gray-500 text-xs mb-1">总价</label>
+                        <div id="total_price_{{ product.id }}" class="px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-green-400 font-bold">
+                            ¥{{ product.price }}
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                function updatePrice{{ product.id }}(quantity) {
+                    const unitPrice = {{ product.price }};
+                    const total = (unitPrice * quantity).toFixed(2);
+                    document.getElementById('total_price_{{ product.id }}').textContent = '¥' + total;
+                }
+                </script>
+
                 <button type="submit"
                         {% if product.stock_count == 0 %}disabled{% endif %}
                         class="w-full py-3 rounded-lg font-semibold transition-all duration-300 {% if product.stock_count > 0 %}bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/50 transform hover:scale-105{% else %}bg-gray-700 text-gray-500 cursor-not-allowed{% endif %}">

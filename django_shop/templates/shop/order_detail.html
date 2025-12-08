@@ -89,28 +89,39 @@
             <!-- 卡密信息 -->
             <div class="bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur rounded-2xl p-6 mb-6 border border-gray-700/50">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-300">您的卡密</h2>
-                    <button onclick="copyCard()"
+                    <h2 class="text-lg font-semibold text-gray-300">您的卡密（共 {{ cards|length }} 个）</h2>
+                    <button onclick="copyAllCards()"
                             class="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 rounded-lg text-purple-300 transition-all duration-300 hover:scale-105">
                         <svg id="copy-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                         </svg>
-                        <span id="copy-text">复制</span>
+                        <span id="copy-text">复制全部</span>
                     </button>
                 </div>
 
-                <div class="relative group">
-                    <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur opacity-20 group-hover:opacity-40 transition"></div>
-                    <div class="relative bg-gray-950 rounded-xl p-6 border border-purple-500/30">
-                        <code id="card-content" class="text-purple-400 text-lg font-mono break-all select-all">{{ card.content }}</code>
+                <div class="space-y-3">
+                    {% for card in cards %}
+                    <div class="relative group">
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur opacity-20 group-hover:opacity-40 transition"></div>
+                        <div class="relative bg-gray-950 rounded-xl p-4 border border-purple-500/30">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs text-gray-500">卡密 {{ forloop.counter }}</span>
+                                <button onclick="copySingleCard('{{ card.content|escapejs }}')"
+                                        class="text-xs px-2 py-1 bg-purple-600/20 hover:bg-purple-600/30 rounded text-purple-300 transition-all">
+                                    复制
+                                </button>
+                            </div>
+                            <code class="text-purple-400 text-sm font-mono break-all select-all">{{ card.content }}</code>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
 
                 <p class="text-gray-500 text-sm mt-4 flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                     </svg>
-                    卡密已发送至您的邮箱：<span class="text-purple-400">{{ order.email }}</span>
+                    所有卡密已发送至您的邮箱：<span class="text-purple-400">{{ order.email }}</span>
                 </p>
             </div>
         {% else %}
@@ -203,19 +214,32 @@
 </div>
 
 <script>
-function copyCard() {
-    const cardContent = document.getElementById('card-content').textContent.trim();
+function copyAllCards() {
+    const cards = {{ cards|length }};
+    const cardContents = [];
+    {% for card in cards %}
+    cardContents.push('{{ card.content|escapejs }}');
+    {% endfor %}
+
+    const allCards = cardContents.map((content, index) => `卡密${index + 1}: ${content}`).join('\n');
     const copyText = document.getElementById('copy-text');
     const copyIcon = document.getElementById('copy-icon');
 
-    navigator.clipboard.writeText(cardContent).then(() => {
+    navigator.clipboard.writeText(allCards).then(() => {
         copyText.textContent = '已复制！';
         copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
 
         setTimeout(() => {
-            copyText.textContent = '复制';
+            copyText.textContent = '复制全部';
             copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>';
         }, 2000);
+    });
+}
+
+function copySingleCard(content) {
+    navigator.clipboard.writeText(content).then(() => {
+        // 可以添加提示效果
+        console.log('卡密已复制');
     });
 }
 </script>
