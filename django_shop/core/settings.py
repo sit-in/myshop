@@ -224,3 +224,4 @@ if not DEBUG:
     # 其他安全设置
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # 强制更新配置 1764931607
+# 添加 openpyxl 支持批量导入卡密
