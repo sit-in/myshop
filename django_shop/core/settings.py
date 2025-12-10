@@ -225,3 +225,15 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # 强制更新配置 1764931607
 # 添加 openpyxl 支持批量导入卡密
+
+# 飞书通知配置
+FEISHU_WEBHOOK_URL = os.environ.get(
+    'FEISHU_WEBHOOK_URL',
+    'https://open.feishu.cn/open-apis/bot/v2/hook/5f03eefc-f696-4e01-bdec-cf813f9efc6c'
+)
+
+# 库存预警阈值
+STOCK_WARNING_THRESHOLD = int(os.environ.get('STOCK_WARNING_THRESHOLD', 10))
+
+# 定时任务安全密钥（可选）
+CRON_SECRET_KEY = os.environ.get('CRON_SECRET_KEY', None)

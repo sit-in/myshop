@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from . import cron_views
 
 app_name = 'shop'
 
@@ -16,4 +17,8 @@ urlpatterns = [
 
     # 订单查询
     path('order/<int:order_id>/', views.order_detail, name='order_detail'),
+
+    # 定时任务
+    path('api/cron/daily-report/', cron_views.daily_report_cron, name='daily_report_cron'),
+    path('api/cron/test-feishu/', cron_views.test_feishu_notification, name='test_feishu'),
 ]
