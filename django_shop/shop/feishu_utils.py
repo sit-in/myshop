@@ -152,3 +152,105 @@ def send_daily_report(stats_data: Dict[str, Any]):
     webhook_url = settings.FEISHU_WEBHOOK_URL
     card = build_daily_report_card(stats_data)
     return send_feishu_message(webhook_url, 'interactive', card)
+
+
+def build_order_notification_card(order, stock_info: Dict[str, Any]) -> Dict[str, Any]:
+    """构建订单通知消息卡片
+
+    Args:
+        order: Order 对象
+        stock_info: 库存信息 {'product_name': str, 'stock_count': int}
+
+    Returns:
+        飞书消息卡片 JSON
+    """
+    # 判断库存状态
+    stock_count = stock_info['stock_count']
+    threshold = getattr(settings, 'STOCK_WARNING_THRESHOLD', 10)
+
+    if stock_count < threshold:
+        title_color = 'red'
+        title_text = "🛒 新订单通知 ⚠️"
+    else:
+        title_color = 'green'
+        title_text = "🛒 新订单通知"
+
+    # 构建消息元素
+    elements = [
+        {
+            'tag': 'div',
+            'text': {
+                'tag': 'lark_md',
+                'content': f"**📋 订单信息**\n"
+                          f"- 订单号：**#{order.id}**\n"
+                          f"- 买家邮箱：{order.email}\n"
+                          f"- 支付时间：{order.paid_at.strftime('%Y-%m-%d %H:%M:%S')}"
+            }
+        },
+        {
+            'tag': 'div',
+            'text': {
+                'tag': 'lark_md',
+                'content': f"**📦 商品详情**\n"
+                          f"- 商品名称：{stock_info['product_name']}\n"
+                          f"- 购买数量：{order.quantity} 件\n"
+                          f"- 订单金额：¥{order.total_amount:.2f}"
+            }
+        },
+        {'tag': 'hr'},
+        {
+            'tag': 'div',
+            'text': {
+                'tag': 'lark_md',
+                'content': f"**📊 库存信息**\n"
+                          f"- 商品剩余：**{stock_count}** 件"
+            }
+        },
+        {
+            'tag': 'action',
+            'actions': [{
+                'tag': 'button',
+                'text': {
+                    'tag': 'plain_text',
+                    'content': '查看订单详情'
+                },
+                'url': f"{settings.SITE_URL}/order/{order.id}/",
+                'type': 'primary'
+            }]
+        }
+    ]
+
+    # 构建完整卡片
+    card = {
+        'header': {
+            'title': {
+                'tag': 'plain_text',
+                'content': title_text
+            },
+            'template': title_color
+        },
+        'elements': elements
+    }
+
+    return card
+
+
+def send_order_notification(order):
+    """发送订单通知到飞书
+
+    Args:
+        order: Order 对象
+    """
+    # 获取商品库存信息
+    stock_count = order.product.stock_count()
+    stock_info = {
+        'product_name': order.product.name,
+        'stock_count': stock_count
+    }
+
+    # 构建消息卡片
+    card = build_order_notification_card(order, stock_info)
+
+    # 发送到飞书
+    webhook_url = settings.FEISHU_WEBHOOK_URL
+    return send_feishu_message(webhook_url, 'interactive', card)

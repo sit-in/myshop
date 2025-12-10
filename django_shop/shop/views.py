@@ -234,6 +234,14 @@ def wechat_payment_notify(request):
             # 记录日志但不影响支付流程
             print(f"邮件发送失败: {e}")
 
+        # 发送飞书通知（新增）
+        try:
+            from .feishu_utils import send_order_notification
+            send_order_notification(order)
+        except Exception as e:
+            # 记录日志但不影响支付流程
+            print(f"飞书通知发送失败: {e}")
+
         return JsonResponse({'code': 'SUCCESS', 'message': '成功'})
 
     except Exception as e:
