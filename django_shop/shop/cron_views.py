@@ -1,4 +1,6 @@
 """定时任务视图（用于 Vercel Cron Jobs）"""
+import time
+
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
@@ -6,6 +8,10 @@ from django.conf import settings
 
 from .stats_service import get_today_stats
 from .feishu_utils import send_daily_report
+
+# 防抖机制：防止短时间内重复请求
+_last_test_time = {}
+_DEBOUNCE_SECONDS = 5
 
 
 @csrf_exempt
@@ -80,6 +86,24 @@ def test_feishu_notification(request):
         # 获取测试类型
         notification_type = request.GET.get('type', 'order')  # 默认测试订单通知
         logger.info(f"[测试接口-{request_id}] 开始执行，类型={notification_type}")
+
+        # 防抖检查：防止短时间内重复请求
+        now = time.time()
+        cache_key = f"{notification_type}"
+
+        if cache_key in _last_test_time:
+            time_diff = now - _last_test_time[cache_key]
+            if time_diff < _DEBOUNCE_SECONDS:
+                logger.warning(f"[测试接口-{request_id}] 检测到{time_diff:.1f}秒内的重复请求，已忽略")
+                return JsonResponse({
+                    'success': False,
+                    'message': f'请求太频繁，请{_DEBOUNCE_SECONDS - time_diff:.1f}秒后再试',
+                    'request_id': request_id,
+                    'debounced': True
+                })
+
+        # 更新最后请求时间
+        _last_test_time[cache_key] = now
 
         if notification_type == 'order':
             # 测试订单通知
