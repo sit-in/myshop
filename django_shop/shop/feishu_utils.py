@@ -167,12 +167,13 @@ def send_daily_report(stats_data: Dict[str, Any]):
     return send_feishu_message(webhook_url, 'interactive', card)
 
 
-def build_order_notification_card(order, stock_info: Dict[str, Any]) -> Dict[str, Any]:
+def build_order_notification_card(order, stock_info: Dict[str, Any], msg_id: str = None) -> Dict[str, Any]:
     """构建订单通知消息卡片
 
     Args:
         order: Order 对象
         stock_info: 库存信息 {'product_name': str, 'stock_count': int}
+        msg_id: 消息唯一ID（可选，用于追踪重复消息）
 
     Returns:
         飞书消息卡片 JSON
@@ -188,16 +189,23 @@ def build_order_notification_card(order, stock_info: Dict[str, Any]) -> Dict[str
         title_color = 'blue'
         title_text = "🛒 新订单通知"
 
+    # 构建订单信息内容
+    order_info_content = f"**📋 订单信息**\n" \
+                        f"- 订单号：**#{order.id}**\n" \
+                        f"- 买家邮箱：{order.email}\n" \
+                        f"- 支付时间：{order.paid_at.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    # 如果有消息ID，添加到内容中（用于调试）
+    if msg_id:
+        order_info_content += f"\n- 消息ID：`{msg_id}`"
+
     # 构建消息元素
     elements = [
         {
             'tag': 'div',
             'text': {
                 'tag': 'lark_md',
-                'content': f"**📋 订单信息**\n"
-                          f"- 订单号：**#{order.id}**\n"
-                          f"- 买家邮箱：{order.email}\n"
-                          f"- 支付时间：{order.paid_at.strftime('%Y-%m-%d %H:%M:%S')}"
+                'content': order_info_content
             }
         },
         {
@@ -255,9 +263,13 @@ def send_order_notification(order):
         order: Order 对象
     """
     import logging
+    import uuid
+    import time
     logger = logging.getLogger(__name__)
 
-    logger.info(f"[飞书通知] send_order_notification 被调用，订单#{order.id}")
+    # 生成唯一消息ID
+    msg_id = f"{order.id}-{int(time.time())}-{str(uuid.uuid4())[:8]}"
+    logger.info(f"[飞书通知] send_order_notification 被调用，订单#{order.id}，消息ID={msg_id}")
 
     # 获取商品库存信息
     stock_count = order.product.stock_count()
@@ -267,11 +279,11 @@ def send_order_notification(order):
     }
 
     # 构建消息卡片
-    card = build_order_notification_card(order, stock_info)
+    card = build_order_notification_card(order, stock_info, msg_id)
 
     # 发送到飞书
     webhook_url = settings.FEISHU_WEBHOOK_URL
-    logger.info(f"[飞书通知] 准备发送HTTP请求到飞书，订单#{order.id}")
+    logger.info(f"[飞书通知] 准备发送HTTP请求到飞书，订单#{order.id}，消息ID={msg_id}")
     result = send_feishu_message(webhook_url, 'interactive', card)
-    logger.info(f"[飞书通知] 飞书HTTP请求完成，订单#{order.id}，响应={result}")
+    logger.info(f"[飞书通知] 飞书HTTP请求完成，订单#{order.id}，消息ID={msg_id}，响应={result}")
     return result
