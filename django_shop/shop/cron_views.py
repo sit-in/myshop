@@ -59,7 +59,9 @@ def daily_report_cron(request):
 def test_feishu_notification(request):
     """测试飞书通知（手动触发）
 
-    使用方式：访问 /api/cron/test-feishu/?secret=YOUR_SECRET
+    使用方式：
+    - 测试订单通知: /api/cron/test-feishu/?type=order
+    - 测试销售日报: /api/cron/test-feishu/?type=daily (默认)
     """
     # 简单的密钥保护
     secret_key = request.GET.get('secret')
@@ -68,27 +70,54 @@ def test_feishu_notification(request):
         return HttpResponseForbidden('Forbidden: Invalid secret key')
 
     try:
-        # 构建测试数据
-        test_stats = {
-            'date': '2025-12-10',
-            'total_orders': 5,
-            'total_revenue': 500.00,
-            'product_sales': [
-                {'product_name': '测试商品A', 'quantity': 3, 'revenue': 300.00},
-                {'product_name': '测试商品B', 'quantity': 2, 'revenue': 200.00},
-            ],
-            'low_stock_products': [
-                {'product_name': '测试商品C', 'stock_count': 5, 'threshold': 10}
-            ]
-        }
+        # 获取测试类型
+        notification_type = request.GET.get('type', 'order')  # 默认测试订单通知
 
-        result = send_daily_report(test_stats)
+        if notification_type == 'order':
+            # 测试订单通知
+            from .models import Order
+            from .feishu_utils import send_order_notification
 
-        return JsonResponse({
-            'success': True,
-            'message': 'Test notification sent',
-            'result': result
-        })
+            # 获取最近一个已支付的订单
+            recent_order = Order.objects.filter(payment_status='paid').order_by('-paid_at').first()
+
+            if not recent_order:
+                return JsonResponse({
+                    'success': False,
+                    'error': '没有找到已支付的订单用于测试'
+                }, status=404)
+
+            result = send_order_notification(recent_order)
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Order notification sent',
+                'order_id': recent_order.id,
+                'result': result
+            })
+
+        else:
+            # 测试销售日报
+            test_stats = {
+                'date': '2025-12-10',
+                'total_orders': 5,
+                'total_revenue': 500.00,
+                'product_sales': [
+                    {'product_name': '测试商品A', 'quantity': 3, 'revenue': 300.00},
+                    {'product_name': '测试商品B', 'quantity': 2, 'revenue': 200.00},
+                ],
+                'low_stock_products': [
+                    {'product_name': '测试商品C', 'stock_count': 5, 'threshold': 10}
+                ]
+            }
+
+            result = send_daily_report(test_stats)
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Daily report sent',
+                'result': result
+            })
 
     except Exception as e:
         return JsonResponse({
