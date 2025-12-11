@@ -183,9 +183,9 @@ def build_order_notification_card(order, stock_info: Dict[str, Any]) -> Dict[str
 
     if stock_count < threshold:
         title_color = 'red'
-        title_text = "🛒 新订单通知 ⚠️"
+        title_text = "🛒 新订单通知"
     else:
-        title_color = 'green'
+        title_color = 'blue'
         title_text = "🛒 新订单通知"
 
     # 构建消息元素

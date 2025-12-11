@@ -91,8 +91,9 @@ def test_feishu_notification(request):
 
             return JsonResponse({
                 'success': True,
-                'message': 'Order notification sent',
+                'message': 'Order notification sent (resent to Feishu)',
                 'order_id': recent_order.id,
+                'note': '注意：这会重新发送最近订单的通知，如果该订单刚创建，可能会收到重复通知',
                 'result': result
             })
 
