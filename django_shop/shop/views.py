@@ -1,5 +1,6 @@
 from datetime import timedelta
 from io import BytesIO
+import logging
 
 import qrcode
 from django.conf import settings
@@ -13,6 +14,8 @@ from django.views.decorators.http import require_POST
 from .email_utils import send_card_email
 from .models import Card, Order, Product
 from .wechat_pay import WeChatPayClient
+
+logger = logging.getLogger(__name__)
 
 
 def product_list(request):
@@ -94,6 +97,15 @@ def buy_product(request, slug):
                     send_card_email(order, cards_list)
                 except Exception as e:
                     print(f"邮件发送失败: {e}")
+
+                # 发送飞书通知
+                try:
+                    from .feishu_utils import send_order_notification
+                    result = send_order_notification(order)
+                    logger.info(f"[测试模式] 飞书通知发送成功: 订单#{order.id}, 响应={result}")
+                except Exception as e:
+                    logger.error(f"[测试模式] 飞书通知发送失败: 订单#{order.id}, 错误={e}", exc_info=True)
+                    print(f"飞书通知发送失败: {e}")
 
                 # 直接跳转到订单详情页
                 return redirect('shop:order_detail', order_id=order.id)
@@ -234,12 +246,14 @@ def wechat_payment_notify(request):
             # 记录日志但不影响支付流程
             print(f"邮件发送失败: {e}")
 
-        # 发送飞书通知（新增）
+        # 发送飞书通知
         try:
             from .feishu_utils import send_order_notification
-            send_order_notification(order)
+            result = send_order_notification(order)
+            logger.info(f"[微信回调] 飞书通知发送成功: 订单#{order.id}, 响应={result}")
         except Exception as e:
             # 记录日志但不影响支付流程
+            logger.error(f"[微信回调] 飞书通知发送失败: 订单#{order.id}, 错误={e}", exc_info=True)
             print(f"飞书通知发送失败: {e}")
 
         return JsonResponse({'code': 'SUCCESS', 'message': '成功'})
@@ -320,6 +334,15 @@ def check_payment_status(request, order_id):
                                 send_card_email(order, cards_list)
                             except Exception as e:
                                 print(f"邮件发送失败: {e}")
+
+                            # 发送飞书通知
+                            try:
+                                from .feishu_utils import send_order_notification
+                                result = send_order_notification(order)
+                                logger.info(f"[主动查询] 飞书通知发送成功: 订单#{order.id}, 响应={result}")
+                            except Exception as e:
+                                logger.error(f"[主动查询] 飞书通知发送失败: 订单#{order.id}, 错误={e}", exc_info=True)
+                                print(f"飞书通知发送失败: {e}")
 
         except Exception as e:
             print(f"查询订单状态失败: {e}")

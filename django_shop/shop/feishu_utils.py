@@ -37,7 +37,20 @@ def send_feishu_message(webhook_url: str, msg_type: str, content: Dict[str, Any]
             timeout=10
         )
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+
+        # 检查飞书API返回的状态码
+        if result.get('code') != 0:
+            error_msg = result.get('msg', '未知错误')
+            raise Exception(f"飞书API返回错误: code={result.get('code')}, msg={error_msg}")
+
+        return result
+    except requests.exceptions.Timeout as e:
+        print(f"飞书消息发送超时: {e}")
+        raise
+    except requests.exceptions.RequestException as e:
+        print(f"飞书消息发送网络错误: {e}")
+        raise
     except Exception as e:
         print(f"飞书消息发送失败: {e}")
         raise
