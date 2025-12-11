@@ -125,13 +125,33 @@ def buy_product(request, slug):
 
     # 生产模式：生成支付二维码
     try:
-        wechat_client = WeChatPayClient()
-        qr_code_url = wechat_client.create_native_order(order)
+        # 初始化微信支付客户端（30秒超时）
+        wechat_client = WeChatPayClient(timeout=30)
+
+        # 创建支付订单（最多重试3次）
+        qr_code_url = wechat_client.create_native_order(order, max_retries=3)
+
         order.qr_code_url = qr_code_url
         order.save()
     except Exception as e:
+        logger.error(f"创建支付订单失败: {e}", exc_info=True)
+
+        # 判断错误类型，提供不同的提示
+        error_message = str(e)
+
+        if 'timeout' in error_message.lower() or 'timed out' in error_message.lower():
+            # 超时错误
+            user_message = '支付系统连接超时，请稍后重试。如果问题持续出现，请联系客服。'
+        elif '证书' in error_message or 'certificate' in error_message.lower():
+            # 证书错误
+            user_message = '支付配置错误，请联系客服处理。'
+        else:
+            # 其他错误
+            user_message = f'支付系统错误：{error_message}'
+
         return render(request, 'shop/error.html', {
-            'message': f'支付系统错误：{str(e)}'
+            'message': user_message,
+            'detail': error_message if settings.DEBUG else None,  # 调试模式显示详细错误
         }, status=500)
 
     # 跳转到支付页面
