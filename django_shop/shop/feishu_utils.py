@@ -254,6 +254,11 @@ def send_order_notification(order):
     Args:
         order: Order 对象
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"[飞书通知] send_order_notification 被调用，订单#{order.id}")
+
     # 获取商品库存信息
     stock_count = order.product.stock_count()
     stock_info = {
@@ -266,4 +271,7 @@ def send_order_notification(order):
 
     # 发送到飞书
     webhook_url = settings.FEISHU_WEBHOOK_URL
-    return send_feishu_message(webhook_url, 'interactive', card)
+    logger.info(f"[飞书通知] 准备发送HTTP请求到飞书，订单#{order.id}")
+    result = send_feishu_message(webhook_url, 'interactive', card)
+    logger.info(f"[飞书通知] 飞书HTTP请求完成，订单#{order.id}，响应={result}")
+    return result

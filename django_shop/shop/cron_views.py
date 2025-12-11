@@ -63,6 +63,9 @@ def test_feishu_notification(request):
     - 测试订单通知: /api/cron/test-feishu/?type=order
     - 测试销售日报: /api/cron/test-feishu/?type=daily (默认)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     # 简单的密钥保护
     secret_key = request.GET.get('secret')
     expected_secret = getattr(settings, 'CRON_SECRET_KEY', None)
@@ -70,8 +73,13 @@ def test_feishu_notification(request):
         return HttpResponseForbidden('Forbidden: Invalid secret key')
 
     try:
+        # 生成唯一请求ID用于追踪
+        import uuid
+        request_id = str(uuid.uuid4())[:8]
+
         # 获取测试类型
         notification_type = request.GET.get('type', 'order')  # 默认测试订单通知
+        logger.info(f"[测试接口-{request_id}] 开始执行，类型={notification_type}")
 
         if notification_type == 'order':
             # 测试订单通知
@@ -87,11 +95,14 @@ def test_feishu_notification(request):
                     'error': '没有找到已支付的订单用于测试'
                 }, status=404)
 
+            logger.info(f"[测试接口-{request_id}] 准备发送订单#{recent_order.id}的通知")
             result = send_order_notification(recent_order)
+            logger.info(f"[测试接口-{request_id}] 订单#{recent_order.id}通知发送完成")
 
             return JsonResponse({
                 'success': True,
                 'message': 'Order notification sent (resent to Feishu)',
+                'request_id': request_id,
                 'order_id': recent_order.id,
                 'note': '注意：这会重新发送最近订单的通知，如果该订单刚创建，可能会收到重复通知',
                 'result': result
