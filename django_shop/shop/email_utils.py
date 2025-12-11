@@ -34,8 +34,13 @@ def send_card_email(order, cards):
 购买数量：{len(cards)} 件
 订单金额：¥{order.total_amount}
 
+商品使用说明：
+{cards[0].product.description}
+
 您的卡密信息：
 {cards_content}
+
+请妥善保管您的卡密信息！
 
 感谢您的购买！
 

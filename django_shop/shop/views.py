@@ -24,6 +24,14 @@ def product_list(request):
     return render(request, 'shop/index.html', {'products': products})
 
 
+def product_detail(request, slug):
+    """商品详情页面"""
+    product = get_object_or_404(Product, slug=slug)
+    return render(request, 'shop/product_detail.html', {
+        'product': product,
+    })
+
+
 @require_POST
 def buy_product(request, slug):
     """创建订单并跳转支付页面"""

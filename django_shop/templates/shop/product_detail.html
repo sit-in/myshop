@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - 数字商店{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- 面包屑导航 -->
+    <div class="mb-6">
+        <a href="{% url 'shop:product_list' %}" class="text-gray-400 hover:text-purple-400 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            返回商品列表
+        </a>
+    </div>
+
+    <!-- 商品信息主卡片 -->
+    <div class="bg-gray-800/90 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
+        <!-- 商品标题和状态 -->
+        <div class="flex items-start justify-between mb-6">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+                {{ product.name }}
+            </h1>
+            {% if product.stock_count > 0 %}
+                <span class="px-4 py-2 bg-green-500/20 text-green-400 text-sm rounded-full border border-green-500/50 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    有货
+                </span>
+            {% else %}
+                <span class="px-4 py-2 bg-red-500/20 text-red-400 text-sm rounded-full border border-red-500/50">
+                    售罄
+                </span>
+            {% endif %}
+        </div>
+
+        <!-- 价格和库存信息 -->
+        <div class="grid grid-cols-2 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-gray-400 text-sm">单价</span>
+                </div>
+                <p class="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                    ¥{{ product.price }}
+                </p>
+            </div>
+
+            <div class="bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                    <span class="text-gray-400 text-sm">库存</span>
+                </div>
+                <p class="text-4xl font-bold text-white">
+                    {{ product.stock_count }} <span class="text-lg text-gray-400">件</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- 商品描述 -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                商品描述
+            </h3>
+            <div class="bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+                <p class="text-gray-300 whitespace-pre-wrap leading-relaxed">{{ product.description }}</p>
+            </div>
+        </div>
+
+        <!-- 购买表单 -->
+        <div class="bg-gradient-to-br from-purple-900/20 to-pink-900/20 rounded-xl p-6 border border-purple-500/30">
+            <h3 class="text-xl font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                立即购买
+            </h3>
+
+            <form method="POST" action="{% url 'shop:buy_product' product.slug %}" class="space-y-4">
+                {% csrf_token %}
+
+                <!-- 邮箱输入 -->
+                <div>
+                    <label for="email" class="block text-gray-400 text-sm mb-2">接收邮箱</label>
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           placeholder="请输入您的邮箱地址"
+                           required
+                           class="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+                           {% if product.stock_count == 0 %}disabled{% endif %}>
+                </div>
+
+                <!-- 数量和总价 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="quantity" class="block text-gray-400 text-sm mb-2">购买数量</label>
+                        <input type="number"
+                               id="quantity"
+                               name="quantity"
+                               min="1"
+                               max="{{ product.stock_count }}"
+                               value="1"
+                               required
+                               class="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+                               {% if product.stock_count == 0 %}disabled{% endif %}
+                               onchange="updateTotalPrice(this.value)">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-2">总价</label>
+                        <div id="total_price" class="px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-green-400 font-bold text-xl">
+                            ¥{{ product.price }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <button type="submit"
+                        {% if product.stock_count == 0 %}disabled{% endif %}
+                        class="w-full py-4 rounded-lg font-semibold text-lg transition-all duration-300 {% if product.stock_count > 0 %}bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/50 transform hover:scale-105{% else %}bg-gray-700 text-gray-500 cursor-not-allowed{% endif %}">
+                    {% if product.stock_count > 0 %}
+                        <span class="flex items-center justify-center gap-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            确认购买
+                        </span>
+                    {% else %}
+                        已售罄
+                    {% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateTotalPrice(quantity) {
+    const unitPrice = {{ product.price }};
+    const total = (unitPrice * quantity).toFixed(2);
+    document.getElementById('total_price').textContent = '¥' + total;
+}
+</script>
+{% endblock %}

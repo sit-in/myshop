@@ -7,6 +7,7 @@ app_name = 'shop'
 
 urlpatterns = [
     path('', views.product_list, name='product_list'),
+    path('product/<slug:slug>/', views.product_detail, name='product_detail'),
     path('buy/<slug:slug>/', views.buy_product, name='buy_product'),
 
     # 支付相关
