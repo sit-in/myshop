@@ -15,11 +15,12 @@ admin.site.index_title = '后台管理'
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'stock_count', 'created_at', 'updated_at')
+    list_display = ('name', 'price', 'display_order', 'stock_count', 'created_at', 'updated_at')
+    list_editable = ('display_order',)
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name', 'description')
     list_filter = ('created_at',)
-    ordering = ['-created_at']
+    ordering = ['display_order', '-created_at']
 
 
 class ExcelImportForm(forms.Form):

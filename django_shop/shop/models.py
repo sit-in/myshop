@@ -8,13 +8,18 @@ class Product(models.Model):
     slug = models.SlugField('URL别名', unique=True)
     description = models.TextField('商品描述', blank=True)
     price = models.DecimalField('价格', max_digits=10, decimal_places=2)
+    display_order = models.IntegerField(
+        '显示顺序',
+        default=0,
+        help_text='数字越小越靠前，相同数字按创建时间排序'
+    )
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 
     class Meta:
         verbose_name = '商品'
         verbose_name_plural = '商品'
-        ordering = ['-created_at']
+        ordering = ['display_order', '-created_at']
 
     def stock_count(self):
         """返回该商品的未售卡密数量"""
