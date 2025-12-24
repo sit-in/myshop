@@ -5,7 +5,7 @@ from django import forms
 from openpyxl import load_workbook
 from django.contrib import messages
 
-from .models import Card, Order, Product
+from .models import Card, Order, Product, PriceTier
 
 # 自定义 Admin 站点标题
 admin.site.site_header = '数字商店管理后台'
@@ -13,14 +13,30 @@ admin.site.site_title = '数字商店'
 admin.site.index_title = '后台管理'
 
 
+class PriceTierInline(admin.TabularInline):
+    """价格阶梯内联编辑"""
+    model = PriceTier
+    extra = 1
+    fields = ('min_quantity', 'max_quantity', 'unit_price', 'display_order')
+    ordering = ['display_order', 'min_quantity']
+    verbose_name = '价格阶梯'
+    verbose_name_plural = '价格阶梯配置'
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'display_order', 'stock_count', 'created_at', 'updated_at')
+    list_display = ('name', 'price', 'has_tiered_pricing_display', 'display_order', 'stock_count', 'created_at', 'updated_at')
     list_editable = ('display_order',)
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name', 'description')
     list_filter = ('created_at',)
     ordering = ['display_order', '-created_at']
+    inlines = [PriceTierInline]
+
+    @admin.display(description='阶梯定价', boolean=True)
+    def has_tiered_pricing_display(self, obj):
+        """显示是否配置了阶梯价格"""
+        return obj.has_tiered_pricing()
 
 
 class ExcelImportForm(forms.Form):

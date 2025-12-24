@@ -59,11 +59,13 @@ def buy_product(request, slug):
         }, status=400)
 
     # 创建订单（待支付状态）
+    unit_price = product.get_price_for_quantity(quantity)
     order = Order.objects.create(
         email=email,
         product=product,  # 关联商品
         quantity=quantity,
-        total_amount=product.price * quantity,
+        unit_price_used=unit_price,  # 新增：保存成交单价
+        total_amount=unit_price * quantity,  # 修改：使用阶梯单价计算
         status='pending',
         payment_status='unpaid',
         out_trade_no=WeChatPayClient.generate_out_trade_no(),
