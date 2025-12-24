@@ -39,6 +39,24 @@ class ProductAdmin(admin.ModelAdmin):
         return obj.has_tiered_pricing()
 
 
+class CardAdminForm(forms.ModelForm):
+    """卡密管理表单"""
+    class Meta:
+        model = Card
+        fields = '__all__'
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'rows': 10,
+                'cols': 80,
+                'style': 'font-family: monospace; font-size: 14px;',
+                'placeholder': '请输入卡密内容，例如：\n- 激活码：XXXX-XXXX-XXXX-XXXX\n- 下载链接：https://...\n- 账号密码：账号xxx 密码xxx'
+            }),
+        }
+        help_texts = {
+            'content': '支持多行文本，建议使用等宽字体以便查看'
+        }
+
+
 class ExcelImportForm(forms.Form):
     """Excel 导入表单"""
     product = forms.ModelChoiceField(
@@ -54,12 +72,30 @@ class ExcelImportForm(forms.Form):
 
 @admin.register(Card)
 class CardAdmin(admin.ModelAdmin):
+    form = CardAdminForm
     list_display = ('id', 'product', 'status', 'short_content', 'order', 'created_at')
     list_filter = ('status', 'product')
     search_fields = ('content',)
-    raw_id_fields = ('order',)
+    autocomplete_fields = ['order']
     list_editable = ('status',)
     ordering = ['-created_at']
+    readonly_fields = ('created_at',)
+
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('product', 'status'),
+            'description': '卡密的基本配置信息'
+        }),
+        ('卡密内容', {
+            'fields': ('content',),
+            'description': '请输入完整的卡密内容。可以是激活码、下载链接、账号密码等。',
+            'classes': ('wide',)
+        }),
+        ('关联信息', {
+            'fields': ('order', 'created_at'),
+            'description': '卡密的销售和创建信息'
+        }),
+    )
 
     @admin.display(description='卡密内容')
     def short_content(self, obj):
@@ -138,7 +174,7 @@ class CardAdmin(admin.ModelAdmin):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'email', 'quantity', 'total_amount', 'status', 'created_at')
     list_filter = ('status', 'created_at')
-    search_fields = ('email',)
+    search_fields = ('email', 'out_trade_no')
     readonly_fields = ('created_at',)
     list_editable = ('status',)
     ordering = ['-created_at']

@@ -100,8 +100,8 @@
                             <td class="px-6 py-4 text-sm">
                                 {% if product.price > tier.unit_price %}
                                     <span class="text-orange-400">
-                                        {% widthratio tier.unit_price product.price 100 as discount_percent %}
-                                        {{ discount_percent }}折
+                                        {% widthratio tier.unit_price product.price 10 as discount %}
+                                        {{ discount }}折
                                     </span>
                                 {% else %}
                                     <span class="text-gray-500">原价</span>
