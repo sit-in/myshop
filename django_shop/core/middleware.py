@@ -41,18 +41,30 @@ class BasicAuthMiddleware:
         return False
 
     def __call__(self, request):
+        # 调试：添加自定义头部显示中间件状态
+        response = None
+
         # 如果未启用 Basic Auth，直接放行
         if not self.enabled:
-            return self.get_response(request)
+            response = self.get_response(request)
+            response['X-BasicAuth-Enabled'] = 'False'
+            response['X-BasicAuth-EnvValue'] = os.environ.get('BASIC_AUTH_ENABLED', 'NOT_SET')
+            return response
 
         # 如果未配置用户名或密码，记录警告并放行
         if not self.username or not self.password:
             print("警告: BASIC_AUTH_ENABLED=True 但未配置 BASIC_AUTH_USERNAME 或 BASIC_AUTH_PASSWORD")
-            return self.get_response(request)
+            response = self.get_response(request)
+            response['X-BasicAuth-Enabled'] = 'True'
+            response['X-BasicAuth-CredentialsSet'] = 'False'
+            return response
 
         # 检查路径是否在排除列表中
         if self._is_excluded_path(request.path):
-            return self.get_response(request)
+            response = self.get_response(request)
+            response['X-BasicAuth-Enabled'] = 'True'
+            response['X-BasicAuth-Excluded'] = 'True'
+            return response
 
         # 获取 Authorization 头
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
@@ -73,7 +85,10 @@ class BasicAuthMiddleware:
             # 验证用户名和密码
             if username == self.username and password == self.password:
                 # 认证成功，继续处理请求
-                return self.get_response(request)
+                response = self.get_response(request)
+                response['X-BasicAuth-Enabled'] = 'True'
+                response['X-BasicAuth-Authenticated'] = 'True'
+                return response
             else:
                 return self._unauthorized_response()
 
