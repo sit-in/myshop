@@ -44,6 +44,21 @@ try:
     # Vercel requires the variable to be named 'app' or 'handler'
     app = application
 
+    # Debug: Print middleware configuration
+    from django.conf import settings
+    print(f"[INIT] MIDDLEWARE configuration:")
+    for i, middleware in enumerate(settings.MIDDLEWARE, 1):
+        print(f"[INIT]   {i}. {middleware}")
+
+    # Check if BasicAuthMiddleware is in the list
+    basic_auth_enabled = any('BasicAuthMiddleware' in m for m in settings.MIDDLEWARE)
+    print(f"[INIT] BasicAuthMiddleware in MIDDLEWARE: {basic_auth_enabled}")
+
+    # Check environment variables
+    print(f"[INIT] BASIC_AUTH_ENABLED env: {os.environ.get('BASIC_AUTH_ENABLED', 'NOT_SET')}")
+    print(f"[INIT] BASIC_AUTH_USERNAME env: {'SET' if os.environ.get('BASIC_AUTH_USERNAME') else 'NOT_SET'}")
+    print(f"[INIT] BASIC_AUTH_PASSWORD env: {'SET' if os.environ.get('BASIC_AUTH_PASSWORD') else 'NOT_SET'}")
+
     print(f"[INIT] ✅ WSGI application initialized successfully")
 
 except Exception as e:
