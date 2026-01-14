@@ -26,6 +26,16 @@ class Product(models.Model):
         return self.cards.filter(status='unsold').count()
     stock_count.short_description = '库存数量'
 
+    def sold_count(self):
+        """返回该商品已完成订单的购买总数量"""
+        from django.db.models import Sum
+        result = self.orders.filter(
+            payment_status='paid',
+            status='completed'
+        ).aggregate(total_quantity=Sum('quantity'))
+        return result['total_quantity'] or 0
+    sold_count.short_description = '已售数量'
+
     def get_price_for_quantity(self, quantity):
         """根据购买数量获取对应的单价"""
         tier = self.price_tiers.filter(

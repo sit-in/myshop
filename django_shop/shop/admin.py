@@ -4,6 +4,10 @@ from django.urls import path
 from django import forms
 from openpyxl import load_workbook
 from django.contrib import messages
+from django.http import HttpResponse
+from django.utils import timezone
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
 
 from .models import Card, Order, Product, PriceTier
 
@@ -70,16 +74,187 @@ class ExcelImportForm(forms.Form):
     )
 
 
+class ProductStockFilter(admin.SimpleListFilter):
+    """按产品库存状态筛选"""
+    title = '产品库存状态'
+    parameter_name = 'product_stock'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('in_stock', '有库存产品'),
+            ('out_of_stock', '无库存产品'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'in_stock':
+            # 筛选有未售出卡密的产品
+            products_with_stock = Card.objects.filter(
+                status='unsold'
+            ).values_list('product_id', flat=True).distinct()
+            return queryset.filter(product_id__in=products_with_stock)
+        elif self.value() == 'out_of_stock':
+            # 筛选没有未售出卡密的产品
+            products_with_stock = Card.objects.filter(
+                status='unsold'
+            ).values_list('product_id', flat=True).distinct()
+            return queryset.exclude(product_id__in=products_with_stock)
+        return queryset
+
+
+class OrderStatusFilter(admin.SimpleListFilter):
+    """按订单关联状态筛选"""
+    title = '订单关联'
+    parameter_name = 'order_status'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('with_order', '已关联订单'),
+            ('without_order', '未关联订单'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'with_order':
+            return queryset.filter(order__isnull=False)
+        elif self.value() == 'without_order':
+            return queryset.filter(order__isnull=True)
+        return queryset
+
+
+@admin.action(description='导出选中的卡密（Excel）')
+def export_cards_to_excel(modeladmin, request, queryset):
+    """批量导出卡密到Excel"""
+    # 限制导出数量，防止超时
+    if queryset.count() > 10000:
+        modeladmin.message_user(
+            request,
+            '一��最多导出10000条卡密，请使用筛选功能分批导出',
+            level='error'
+        )
+        return
+
+    # 创建工作簿
+    wb = Workbook()
+    ws = wb.active
+    ws.title = '卡密导出'
+
+    # 设置表头
+    headers = ['ID', '所属商品', '卡密内容', '状态', '关联订单ID', '买家邮箱', '创建时间']
+    ws.append(headers)
+
+    # 设置表头样式
+    header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # 写入数据（使用select_related优化查询）
+    for card in queryset.select_related('product', 'order'):
+        ws.append([
+            card.id,
+            card.product.name,
+            card.content,
+            card.get_status_display(),
+            card.order.id if card.order else '',
+            card.order.email if card.order else '',
+            card.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        ])
+
+    # 调整列宽
+    ws.column_dimensions['A'].width = 8
+    ws.column_dimensions['B'].width = 20
+    ws.column_dimensions['C'].width = 50
+    ws.column_dimensions['D'].width = 12
+    ws.column_dimensions['E'].width = 12
+    ws.column_dimensions['F'].width = 25
+    ws.column_dimensions['G'].width = 20
+
+    # 创建HTTP响应
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+    response['Content-Disposition'] = f'attachment; filename="cards_export_{timestamp}.xlsx"'
+
+    wb.save(response)
+    return response
+
+
+@admin.action(description='批量设置为已售出')
+def mark_as_sold(modeladmin, request, queryset):
+    """批量将卡密标记为已售出（不关联订单）"""
+    # 只更新未售出的卡密
+    unsold_cards = queryset.filter(status='unsold')
+    count = unsold_cards.count()
+
+    if count == 0:
+        modeladmin.message_user(
+            request,
+            '选中的卡密中没有未售出的，无需更新',
+            level='warning'
+        )
+        return
+
+    # 批量更新状态
+    unsold_cards.update(status='sold')
+
+    modeladmin.message_user(
+        request,
+        f'成功将{count}个卡密设置为已售出。注意：这些卡密未关联订单，仅标记状态。',
+        level='success'
+    )
+
+
+@admin.action(description='批量设置为未售出')
+def mark_as_unsold(modeladmin, request, queryset):
+    """批量将卡密标记为未售出（安全检查）"""
+    # 只更新已售出的卡密
+    sold_cards = queryset.filter(status='sold')
+    count = sold_cards.count()
+
+    if count == 0:
+        modeladmin.message_user(
+            request,
+            '选中的卡密中没有已售出的，无需更新',
+            level='warning'
+        )
+        return
+
+    # 检查是否有关联订单（防止误操作）
+    cards_with_orders = sold_cards.filter(order__isnull=False)
+    if cards_with_orders.exists():
+        modeladmin.message_user(
+            request,
+            f'错误：选中的{cards_with_orders.count()}个卡密已关联订单，不能改回未售出状态。请在订单管理中处理。',
+            level='error'
+        )
+        return
+
+    # 批量更新状态
+    sold_cards.update(status='unsold')
+
+    modeladmin.message_user(
+        request,
+        f'成功将{count}个卡密设置为未售出',
+        level='success'
+    )
+
+
 @admin.register(Card)
 class CardAdmin(admin.ModelAdmin):
     form = CardAdminForm
     list_display = ('id', 'product', 'status', 'short_content', 'order', 'created_at')
-    list_filter = ('status', 'product')
-    search_fields = ('content',)
+    list_filter = ('status', 'product', ProductStockFilter, OrderStatusFilter)
+    search_fields = ('content', 'product__name')
     autocomplete_fields = ['order']
     list_editable = ('status',)
     ordering = ['-created_at']
     readonly_fields = ('created_at',)
+
+    # 批量操作
+    actions = [export_cards_to_excel, mark_as_sold, mark_as_unsold]
 
     fieldsets = (
         ('基本信息', {
