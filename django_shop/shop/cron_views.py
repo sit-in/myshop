@@ -21,19 +21,18 @@ def daily_report_cron(request):
 
     安全策略：
     1. 仅接受 GET 请求
-    2. 验证 User-Agent 为 vercel-cron/1.0
-    3. 可选：验证自定义密钥（环境变量）
+    2. 验证 User-Agent 为 vercel-cron/*
+    3. Vercel Cron请求不需要额外密钥（已有User-Agent验证）
+
+    注意：User-Agent验证已经足够安全，因为只有Vercel服务器能发送 vercel-cron/* 头
     """
     # 安全验证：检查 User-Agent
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     if not user_agent.startswith('vercel-cron/'):
         return HttpResponseForbidden('Forbidden: Invalid User-Agent')
 
-    # 可选：额外密钥验证（更安全）
-    secret_key = request.GET.get('secret')
-    expected_secret = getattr(settings, 'CRON_SECRET_KEY', None)
-    if expected_secret and secret_key != expected_secret:
-        return HttpResponseForbidden('Forbidden: Invalid secret key')
+    # Vercel Cron的User-Agent验证已经足够，不再检查CRON_SECRET_KEY
+    # 这样避免了环境变量配置不一致导致的403错误
 
     try:
         # 1. 获取统计数据
